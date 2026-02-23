@@ -27,7 +27,7 @@ def load_data():
 df = load_data()
 
 
-# Sidebar Filters
+# Sidebar filters
 st.sidebar.header("Filter Options")
 
 machine_list = sorted(df["Machine_ID"].unique())
@@ -64,6 +64,17 @@ df = df[
 ]
 
 
+# Machine-specific data
+machine_data = df[df["Machine_ID"] == selected_machine].copy()
+machine_data = machine_data.sort_values("Datetime")
+
+if machine_data.empty:
+    st.warning("No data available for selected filters.")
+    st.stop()
+
+machine_data["Risk_Smoothed"] = machine_data["Risk_Score"].rolling(window=30).mean()
+
+
 # KPI Overview
 st.subheader("📊 Predictive Maintenance Overview")
 
@@ -85,12 +96,26 @@ risk_counts = df["Maintenance_Risk_Level"].value_counts()
 st.bar_chart(risk_counts)
 
 
-# Risk Trend
+# Current machine risk badge
+latest_record = machine_data.iloc[-1]
+current_risk = latest_record["Maintenance_Risk_Level"]
+
+if current_risk == "High":
+    st.markdown("### 🔴 Current Machine Status: HIGH RISK")
+elif current_risk == "Medium":
+    st.markdown("### 🟡 Current Machine Status: MEDIUM RISK")
+else:
+    st.markdown("### 🟢 Current Machine Status: LOW RISK")
+
+
+# Risk Escalation Chart
 st.subheader("📈 Machine Risk Escalation Trend")
 
-machine_data = df[df["Machine_ID"] == selected_machine].copy()
-machine_data = machine_data.sort_values("Datetime")
-machine_data["Risk_Smoothed"] = machine_data["Risk_Score"].rolling(window=30).mean()
+st.markdown("""
+**Risk Escalation Insight:**  
+This chart shows the smoothed anomaly score over time.  
+When the risk line crosses the red threshold, the machine is operating under abnormal conditions that may require inspection.
+""")
 
 plt.style.use("seaborn-v0_8-whitegrid")
 
@@ -130,8 +155,14 @@ plt.xticks(rotation=45)
 st.pyplot(fig1)
 
 
-# Sensor Deviation Analysis
+# Sensor Deviation Chart
 st.subheader("📊 Sensor Deviation Analysis")
+
+st.markdown("""
+**Sensor Deviation Insight:**  
+These lines represent deviation from each machine's normal operating baseline.  
+Sustained deviations may indicate mechanical stress or instability.
+""")
 
 fig2, ax2 = plt.subplots(figsize=(12, 5))
 
@@ -175,7 +206,7 @@ ranking = df.groupby("Machine_ID")["Risk_Score"].mean().sort_values(ascending=Fa
 st.dataframe(ranking.head(10))
 
 
-# Alert Panel
+# Maintenance Alerts
 st.subheader("⚠ Maintenance Alerts")
 
 alerts = df[df["Risk_Score"] >= risk_threshold]
