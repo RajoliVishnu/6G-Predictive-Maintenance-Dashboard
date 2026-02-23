@@ -2,14 +2,11 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Page Configuration
-
 st.set_page_config(
     page_title="6G Predictive Maintenance Dashboard",
     layout="wide"
 )
 
-# Professional Header Styling
 st.markdown("""
 <style>
 div.block-container {padding-top: 1rem;}
@@ -19,19 +16,18 @@ h1, h2, h3 {color: #003366;}
 
 st.title("🔧 Predictive Maintenance & Anomaly Detection")
 st.markdown("### 6G-Integrated Smart Manufacturing System")
-st.markdown("Developed for Thales Group – Smart Factory Risk Monitoring Framework")
+st.markdown("AI-driven early risk detection for smart factory operations.")
 
 
-# Load Dataset
-
+# Load dataset
 @st.cache_data
 def load_data():
     return pd.read_csv("final_predictive_maintenance_output.csv", parse_dates=["Datetime"])
 
 df = load_data()
 
-# Sidebar Filters
 
+# Sidebar Filters
 st.sidebar.header("Filter Options")
 
 machine_list = sorted(df["Machine_ID"].unique())
@@ -44,9 +40,11 @@ min_date = df["Datetime"].min()
 max_date = df["Datetime"].max()
 
 selected_dates = st.sidebar.date_input(
-    "Select Time Window",
+    "📅 Select Analysis Time Window",
     [min_date, max_date]
 )
+
+st.sidebar.markdown("**Adjust threshold to highlight severe risk periods**")
 
 risk_threshold = st.sidebar.slider(
     "Risk Score Threshold",
@@ -56,8 +54,7 @@ risk_threshold = st.sidebar.slider(
 )
 
 
-# Apply Filters
-
+# Apply filters
 if selected_mode != "All":
     df = df[df["Operation_Mode"] == selected_mode]
 
@@ -66,8 +63,8 @@ df = df[
     (df["Datetime"] <= pd.to_datetime(selected_dates[1]))
 ]
 
-# KPI Overview Section
 
+# KPI Overview
 st.subheader("📊 Predictive Maintenance Overview")
 
 total_machines = df["Machine_ID"].nunique()
@@ -78,29 +75,26 @@ early_detection = df[
     (df["Efficiency_Status"] != "Low")
 ]
 
-downtime_prevention_index = len(early_detection)
-
 col1, col2, col3 = st.columns(3)
 col1.metric("Total Machines", total_machines)
 col2.metric("High Risk Machines", high_risk_machines)
-col3.metric("Downtime Prevention Signals", downtime_prevention_index)
+col3.metric("Downtime Prevention Signals", len(early_detection))
 
 st.subheader("Risk Level Distribution")
 risk_counts = df["Maintenance_Risk_Level"].value_counts()
 st.bar_chart(risk_counts)
 
-# Machine Risk Escalation Trend
 
+# Risk Trend
 st.subheader("📈 Machine Risk Escalation Trend")
 
 machine_data = df[df["Machine_ID"] == selected_machine].copy()
 machine_data = machine_data.sort_values("Datetime")
-
 machine_data["Risk_Smoothed"] = machine_data["Risk_Score"].rolling(window=30).mean()
 
 plt.style.use("seaborn-v0_8-whitegrid")
 
-fig1, ax1 = plt.subplots(figsize=(12,5))
+fig1, ax1 = plt.subplots(figsize=(12, 5))
 
 ax1.plot(
     machine_data["Datetime"],
@@ -129,17 +123,17 @@ ax1.fill_between(
 
 ax1.set_title(f"Machine {selected_machine} – Risk Escalation Timeline", fontsize=14, fontweight="bold")
 ax1.set_xlabel("Time")
-ax1.set_ylabel("Risk Score")
+ax1.set_ylabel("Risk Score (Higher = More Abnormal)")
 ax1.legend()
 
 plt.xticks(rotation=45)
 st.pyplot(fig1)
 
-# Sensor Deviation Visualization
 
+# Sensor Deviation Analysis
 st.subheader("📊 Sensor Deviation Analysis")
 
-fig2, ax2 = plt.subplots(figsize=(12,5))
+fig2, ax2 = plt.subplots(figsize=(12, 5))
 
 ax2.plot(
     machine_data["Datetime"],
@@ -167,22 +161,21 @@ ax2.plot(
 
 ax2.set_title(f"Machine {selected_machine} – Sensor Behavior Deviations", fontsize=14, fontweight="bold")
 ax2.set_xlabel("Time")
-ax2.set_ylabel("Deviation from Baseline")
+ax2.set_ylabel("Deviation from Baseline (Sensor Units)")
 ax2.legend()
 
 plt.xticks(rotation=45)
 st.pyplot(fig2)
 
-# High-Risk Machine Ranking
 
+# High-Risk Machine Ranking
 st.subheader("🚨 High-Risk Machine Ranking")
 
 ranking = df.groupby("Machine_ID")["Risk_Score"].mean().sort_values(ascending=False)
 st.dataframe(ranking.head(10))
 
 
-# Maintenance Alert Panel
-
+# Alert Panel
 st.subheader("⚠ Maintenance Alerts")
 
 alerts = df[df["Risk_Score"] >= risk_threshold]
@@ -196,4 +189,4 @@ st.dataframe(
 )
 
 st.markdown("---")
-st.markdown("### End of Dashboard – 6G Predictive Maintenance System")
+st.markdown("End of Dashboard – 6G Predictive Maintenance System")
